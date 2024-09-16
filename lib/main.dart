@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'main.g.dart';
+
+const double _kSize = 50;
 
 void main() {
   runApp(const MyApp());
@@ -33,6 +39,9 @@ class MyHomePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 状態の監視
     final counter = ref.watch(counterNotifierProvider);
+    final isLoading = counter.isLoading;
+    final number = counter.value;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
@@ -45,10 +54,15 @@ class MyHomePage extends ConsumerWidget {
             const Text(
               'You have pushed the button this many times:',
             ),
-            Text(
-              '$counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            isLoading
+                ? LoadingAnimationWidget.waveDots(
+                    color: Colors.black,
+                    size: _kSize,
+                  )
+                : Text(
+                    '$number',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
           ],
         ),
       ),
@@ -61,17 +75,55 @@ class MyHomePage extends ConsumerWidget {
   }
 }
 
-/// Riverpodを使用した状態の保持
-/// int型の状態を保持する
-class CounterNotifier extends Notifier<int> {
-  @override
-  int build() => 0;
+/**
+ * 基本的なProvider
+ */
+// class CounterNotifier extends Notifier<int> {
+//   @override
+//   int build() => 0;
 
-  void increment() {
-    state = state + 1;
-  }
+//   void increment() {
+//     state = state + 1;
+//   }
+// }
+
+// final counterNotifierProvider = NotifierProvider<CounterNotifier, int>(() {
+//   return CounterNotifier();
+// });
+
+/// 関数ベースのプロバイダー
+@riverpod
+String greet(GreetRef ref) {
+  return 'Hello World!';
 }
 
-final counterNotifierProvider = NotifierProvider<CounterNotifier, int>(() {
-  return CounterNotifier();
-});
+/// クラスベースのプロバイダー
+// @riverpod
+// class CounterNotifier extends _$CounterNotifier {
+//   @override
+//   int build() => 0;
+//   void increment() {
+//     state = state + 1;
+//   }
+// }
+
+// 非同期のProvider
+@riverpod
+class CounterNotifier extends _$CounterNotifier {
+  @override
+  Future<int> build() async {
+    await Future.delayed(
+      const Duration(seconds: 1),
+    );
+    return 0;
+  }
+
+  void increment() async {
+    final currentValue = state.valueOrNull;
+    if (currentValue == null) return;
+
+    state = const AsyncLoading();
+    await Future<void>.delayed(const Duration(seconds: 1));
+    state = AsyncValue.data(currentValue + 1);
+  }
+}
